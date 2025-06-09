@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import matplotlib
+# Set Matplotlib to use Agg backend for non-interactive plotting
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
@@ -9,6 +12,8 @@ from mlxtend.frequent_patterns import apriori, association_rules
 import warnings
 import re
 import os
+from pathlib import Path
+
 warnings.filterwarnings('ignore')
 
 np.random.seed(42)
@@ -23,6 +28,7 @@ def find_column(df, possible_names, case_sensitive=False):
     return None
 
 def load_and_preprocess_data(file_path, column_mapping=None):
+    messages = []  # List to collect messages
     try:
         default_mapping = {
             'InvoiceNo': ['invoiceno', 'invoice_no', 'invoice', 'order_id', 'order_no'],
@@ -34,7 +40,30 @@ def load_and_preprocess_data(file_path, column_mapping=None):
             'CustomerID': ['customerid', 'customer_id', 'client_id', 'user_id'],
             'Country': ['country', 'location', 'region']
         }
-        df = pd.read_csv(file_path)
+        
+        # Convert file_path to string if it's a Path object
+        file_path = str(file_path)
+        
+        # Try different encodings
+        encodings = ['utf-8', 'latin1', 'iso-8859-1', 'windows-1252']
+        df = None
+        for encoding in encodings:
+            try:
+                df = pd.read_csv(file_path, encoding=encoding)
+                messages.append(f"Successfully loaded file with {encoding} encoding")
+                break
+            except UnicodeDecodeError:
+                messages.append(f"Failed to load with {encoding} encoding, trying next...")
+                continue
+            except Exception as e:
+                messages.append(f"Error loading file with {encoding}: {e}")
+                continue
+        
+        if df is None:
+            messages.append("Error: Could not load file with any supported encoding.")
+            return None, messages
+
+        # Rename columns based on mapping
         if column_mapping is None:
             column_mapping = {}
             for key, possibles in default_mapping.items():
@@ -42,29 +71,34 @@ def load_and_preprocess_data(file_path, column_mapping=None):
                 if found_col:
                     column_mapping[key] = found_col
                 else:
-                    print(f"Warning: No matching column found for {key}")
-                    return None
+                    messages.append(f"Warning: No matching column found for {key}")
+                    return None, messages
+
         df = df.rename(columns={v: k for k, v in column_mapping.items() if v in df.columns})
         required_cols = ['InvoiceNo', 'Quantity', 'InvoiceDate', 'UnitPrice', 'CustomerID']
         missing_cols = [col for col in required_cols if col not in df.columns]
         if missing_cols:
-            print(f"Error: Missing required columns: {missing_cols}")
-            return None
+            messages.append(f"Error: Missing required columns: {missing_cols}")
+            return None, messages
+
+        # Preprocess data
         df['InvoiceDate'] = pd.to_datetime(df['InvoiceDate'], errors='coerce')
         df = df.dropna(subset=['InvoiceDate', 'CustomerID'])
         df['CustomerID'] = df['CustomerID'].astype(int)
         df = df[df['Quantity'] > 0]
         df['TotalPrice'] = df['Quantity'] * df['UnitPrice']
         df = df[df['TotalPrice'] > 0]
+
         if 'Description' in df.columns:
             df = df.dropna(subset=['Description'])
             df['Description'] = df['Description'].str.strip().str.upper()
             df = df[df['Description'] != '']
-            print(f"Cleaned Description column: {len(df)} rows remaining")
-        return df
+            messages.append(f"Cleaned Description column: {len(df)} rows remaining")
+
+        return df, messages
     except Exception as e:
-        print(f"Error in data loading/preprocessing: {e}")
-        return None
+        messages.append(f"Error in data loading/preprocessing: {e}")
+        return None, messages
 
 def analyze_top_products(df, top_n=10, output_dir='.'):
     os.makedirs(output_dir, exist_ok=True)
@@ -158,34 +192,35 @@ def analyze_loyalty(df, rfm, output_dir='.'):
     return loyalty_summary
 
 def market_basket_analysis(df, min_support=0.005, min_confidence=0.1, output_dir='.', sample_size=10000):
+    messages = []
     os.makedirs(output_dir, exist_ok=True)
-    print(f"Starting market basket analysis with {len(df)} rows")
+    messages.append(f"Starting market basket analysis with {len(df)} rows")
     if sample_size and len(df) > sample_size:
         df = df.sample(n=sample_size, random_state=42)
-        print(f"Sampled {sample_size} rows for market basket analysis")
+        messages.append(f"Sampled {sample_size} rows for market basket analysis")
     try:
         basket = (df.groupby(['InvoiceNo', 'Description'])['Quantity']
                   .sum().unstack().reset_index().fillna(0)
                   .set_index('InvoiceNo'))
         basket = basket.apply(lambda x: (x > 0).astype(int))
-        print(f"Basket matrix created with shape: {basket.shape}")
+        messages.append(f"Basket matrix created with shape: {basket.shape}")
     except Exception as e:
-        print(f"Error creating basket matrix: {e}")
-        return pd.DataFrame(), None
+        messages.append(f"Error creating basket matrix: {e}")
+        return pd.DataFrame(), None, messages
     try:
         frequent_itemsets = apriori(basket, min_support=min_support, use_colnames=True, low_memory=True)
-        print(f"Found {len(frequent_itemsets)} frequent itemsets")
+        messages.append(f"Found {len(frequent_itemsets)} frequent itemsets")
         if frequent_itemsets.empty:
-            print("No frequent itemsets found. Try lowering min_support.")
-            return pd.DataFrame(), None
+            messages.append("No frequent itemsets found. Try lowering min_support.")
+            return pd.DataFrame(), None, messages
         rules = association_rules(frequent_itemsets, metric='confidence', min_threshold=min_confidence)
-        print(f"Generated {len(rules)} association rules")
+        messages.append(f"Generated {len(rules)} association rules")
     except Exception as e:
-        print(f"Error in Apriori algorithm: {e}")
-        return pd.DataFrame(), None
+        messages.append(f"Error in Apriori algorithm: {e}")
+        return pd.DataFrame(), None, messages
     if rules.empty:
-        print("No association rules generated.")
-        return pd.DataFrame(), None
+        messages.append("No association rules generated.")
+        return pd.DataFrame(), None, messages
     rules.to_csv(os.path.join(output_dir, 'association_rules.csv'))
 
     plt.figure(figsize=(10, 6))
@@ -199,7 +234,7 @@ def market_basket_analysis(df, min_support=0.005, min_confidence=0.1, output_dir
     plt.savefig(plot_path)
     plt.close()
 
-    return rules, plot_path
+    return rules, plot_path, messages
 
 def calculate_clv(df, rfm, output_dir='.'):
     os.makedirs(output_dir, exist_ok=True)
@@ -221,10 +256,11 @@ def calculate_clv(df, rfm, output_dir='.'):
     return clv, plot_path
 
 def geographical_analysis(df, top_n=10, output_dir='.'):
+    messages = []
     os.makedirs(output_dir, exist_ok=True)
     if 'Country' not in df.columns:
-        print("No Country column found.")
-        return pd.DataFrame(), None
+        messages.append("No Country column found.")
+        return pd.DataFrame(), None, messages
     geo_summary = df.groupby('Country').agg({
         'TotalPrice': 'sum',
         'Quantity': 'sum',
@@ -245,16 +281,17 @@ def geographical_analysis(df, top_n=10, output_dir='.'):
     plt.savefig(plot_path)
     plt.close()
 
-    return geo_summary, plot_path
+    return geo_summary, plot_path, messages
 
 def purchase_timing_analysis(df, output_dir='.'):
+    messages = []
     os.makedirs(output_dir, exist_ok=True)
     try:
         df['DayOfWeek'] = df['InvoiceDate'].dt.day_name()
         df['Hour'] = df['InvoiceDate'].dt.hour
     except Exception as e:
-        print(f"Error processing dates: {e}")
-        return pd.DataFrame(), pd.DataFrame(), []
+        messages.append(f"Error processing dates: {e}")
+        return pd.DataFrame(), pd.DataFrame(), [], messages
     day_summary = df.groupby('DayOfWeek').agg({
         'TotalPrice': 'sum'
     }).reset_index().sort_values(by='TotalPrice', ascending=False)
@@ -290,7 +327,7 @@ def purchase_timing_analysis(df, output_dir='.'):
     plt.savefig(hour_plot_path)
     plt.close()
 
-    return day_summary, hour_summary, [day_plot_path, hour_plot_path]
+    return day_summary, hour_summary, [day_plot_path, hour_plot_path], messages
 
 def churn_analysis(rfm, recency_threshold=180, output_dir='.'):
     os.makedirs(output_dir, exist_ok=True)
@@ -315,28 +352,42 @@ def churn_analysis(rfm, recency_threshold=180, output_dir='.'):
     return churn, plot_path
 
 def run_analysis(file_path, output_dir='plots', reference_date='2025-06-02', column_mapping=None,
-                 min_support=0.005, min_confidence=0.1, sample_size=10000):
+                min_support=0.005, min_confidence=0.1, sample_size=10000):
+    messages = []  # Collect all messages
+    # Ensure file_path is a string
+    file_path = str(file_path)
     plot_dir = os.path.join('C:/CustomerSegmentation', 'media', output_dir)
     csv_dir = os.path.join('C:/CustomerSegmentation', 'media', 'outputs')
     os.makedirs(plot_dir, exist_ok=True)
     os.makedirs(csv_dir, exist_ok=True)
-    df = load_and_preprocess_data(file_path, column_mapping)
+    df, load_messages = load_and_preprocess_data(file_path, column_mapping)
+    messages.extend(load_messages)
     if df is None:
-        print("Data loading failed: No valid data returned.")
-        return None
+        messages.append("Data loading failed: No valid data returned.")
+        return {'messages': messages}
+    
     top_products, top_products_plot = analyze_top_products(df, output_dir=plot_dir)
     rfm = calculate_rfm(df, reference_date)
     rfm_segmented = segment_customers(rfm)
-    rfm_segmented.to_csv(os.path.join(plot_dir, 'rfm_segments.csv'))
+    rfm_segmented.to_csv(os.path.join(csv_dir, 'rfm_segments.csv'))
     segment_plots = visualize_segments(rfm_segmented, output_dir=plot_dir)
-    loyalty_summary = analyze_loyalty(df, rfm_segmented, output_dir=plot_dir)
-    rules, rules_plot = (market_basket_analysis(df, min_support=min_support, min_confidence=min_confidence,
-                                                output_dir=plot_dir, sample_size=sample_size)
-                         if 'Description' in df.columns else (pd.DataFrame(), None))
+    loyalty_summary = analyze_loyalty(df, rfm_segmented, output_dir=csv_dir)
+    if 'Description' in df.columns:
+        rules, rules_plot, mba_messages = market_basket_analysis(df, min_support=min_support, min_confidence=min_confidence,
+                                                               output_dir=plot_dir, sample_size=sample_size)
+        messages.extend(mba_messages)
+    else:
+        rules, rules_plot = pd.DataFrame(), None
+        messages.append("Skipping market basket analysis: No Description column found.")
     clv, clv_plot = calculate_clv(df, rfm_segmented, output_dir=plot_dir)
-    geo_summary, geo_plot = (geographical_analysis(df, output_dir=plot_dir)
-                             if 'Country' in df.columns else (pd.DataFrame(), None))
-    day_summary, hour_summary, timing_plots = purchase_timing_analysis(df, output_dir=plot_dir)
+    if 'Country' in df.columns:
+        geo_summary, geo_plot, geo_messages = geographical_analysis(df, output_dir=plot_dir)
+        messages.extend(geo_messages)
+    else:
+        geo_summary, geo_plot = pd.DataFrame(), None
+        messages.append("Skipping geographical analysis: No Country column found.")
+    day_summary, hour_summary, timing_plots, timing_messages = purchase_timing_analysis(df, output_dir=plot_dir)
+    messages.extend(timing_messages)
     churn, churn_plot = churn_analysis(rfm_segmented, output_dir=plot_dir)
 
     plots = [top_products_plot, rules_plot, clv_plot, geo_plot, churn_plot] + segment_plots + timing_plots
@@ -352,5 +403,6 @@ def run_analysis(file_path, output_dir='plots', reference_date='2025-06-02', col
         'day_summary': day_summary.to_dict('records'),
         'hour_summary': hour_summary.to_dict('records'),
         'churn': churn.to_dict('records'),
-        'plots': plots
+        'plots': plots,
+        'messages': messages  # Add messages to the result dictionary
     }

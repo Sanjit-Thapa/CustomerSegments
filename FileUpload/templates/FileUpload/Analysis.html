@@ -1,0 +1,51 @@
+{% extends 'FileUpload/Home.html' %}
+{% block content %}
+
+{% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
+<!-- Form for single-section PDF download -->
+<form method="post" action="">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="download_single_pdf">
+    <label for="pdf_section">Select Section for PDF:</label>
+    <select name="pdf_section" id="pdf_section">
+        <option value="top_products">Top Products</option>
+        <option value="rfm_segments">RFM Segments</option>
+        <option value="rules">Rules</option>
+        <option value="loyalty_summary">Loyalty Summary</option>
+        <option value="clv">Customer Lifetime Value</option>
+        <option value="geo_summary">Geographic Summary</option>
+        <option value="day_summary">Day Summary</option>
+        <option value="hour_summary">Hour Summary</option>
+        <option value="churn">Churn</option>
+        <option value="plots">Plots</option>
+    </select>
+    <button type="submit">Download Selected Section as PDF</button>
+</form>
+
+<!-- Form for all-sections PDF download -->
+<form method="post" action="">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="download_all_pdf">
+    <button type="submit">Download All Sections as PDF</button>
+</form>
+
+<!-- Display plots -->
+<h2>Plots</h2>
+{% if plots %}
+    {% for plot in plots %}
+        <div>
+            <img src="{{ plot }}" alt="Analysis Plot" style="max-width: 100%; height: auto;">
+        </div>
+    {% endfor %}
+{% else %}
+    <p>No plots available.</p>
+{% endif %}
+
+{% endblock %}

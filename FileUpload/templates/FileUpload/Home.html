@@ -19,34 +19,16 @@
             <input type="submit" value="Save">
         </form>
         
-        
         {% if messages %}
-            <ul>
-                {% for message in messages %}
-                <li class="{{ message.tags }}">{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-
-        {% if top_products %}
-            <h3>Top Products:</h3>
-            <ul>
-                {% for product in top_products %}
-                <li>{{ product.Description }} - {{ product.TotalPrice }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-
-        {% if plots %}
-            {% for plt in plots %}
-                <div>
-                    <img src="{{ plt }}" alt="Analysis Plot" style="max-width: 600px;">
-                    <br>
-                    <a href="{{ plt }}" download>Download Plot</a>
-                </div>
+        <h2>Messages</h2>
+        <ul>
+            {% for message in messages %}
+                <li{% if message.tags == 'error' %} style="color: red;"{% elif message.tags == 'warning' %} style="color: orange;"{% else %} style="color: green;"{% endif %}>
+                    {{ message }}
+                </li>
             {% endfor %}
-        {% endif %}
-
+        </ul>
+    {% endif %}
        
     {% endblock  %}
 
