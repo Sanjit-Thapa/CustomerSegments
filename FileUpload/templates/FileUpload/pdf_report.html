@@ -18,7 +18,39 @@
 
     <div class="section">
         <h2>{{ section_name }}</h2>
-        {% if is_plots %}
+        {% if section_name == 'Top Products' %}
+            <ul>
+                {% for item in section_data %}
+                    <li>{{ item.Description|default:item.StockCode|default:"Unknown Product" }}: {{ item.Quantity|default:0 }} sold</li>
+                {% empty %}
+                    <li class="empty">No data available.</li>
+                {% endfor %}
+            </ul>
+        {% elif section_name == 'RFM Segments' %}
+            <ul>
+                {% for item in section_data %}
+                    <li>{{ item.Segment }}: {{ item.Count|default:0 }} customers</li>
+                {% empty %}
+                    <li class="empty">No data available.</li>
+                {% endfor %}
+            </ul>
+        {% elif section_name == 'Geographic Summary' %}
+            <ul>
+                {% for item in section_data %}
+                    <li>{{ item.Country }}: ${{ item.TotalRevenue|default:0 }}</li>
+                {% empty %}
+                    <li class="empty">No data available.</li>
+                {% endfor %}
+            </ul
+        {% elif section_name == 'Day Summary' %}
+            <ul>
+                {% for item in section_data %}
+                    <li>{{ item.DayOfWeek }}: ${{ item.TotalPrice|default:0 }}</li>
+                {% empty %}
+                    <li class="empty">No data available.</li>
+                {% endfor %}
+            </ul>
+        {% elif is_plots %}
             {% for plot in section_data %}
                 <img src="{{ plot }}" alt="{{ section_name }} Plot">
             {% empty %}
@@ -29,7 +61,7 @@
                 {% for item in section_data %}
                     <li>{{ item }}</li>
                 {% empty %}
-                    <li class="empty">No data available for {{ section_name }}.</li>
+                    <li class="empty">No data available.</li>
                 {% endfor %}
             </ul>
         {% endif %}

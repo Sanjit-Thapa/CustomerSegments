@@ -1,51 +1,270 @@
 {% extends 'FileUpload/Home.html' %}
-{% block content %}
+     {% block content %}
+     <!-- Tailwind CSS CDN -->
+     <script src="https://cdn.tailwindcss.com"></script>
+     <!-- Chart.js CDN -->
+     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-{% if messages %}
-    <ul class="messages">
-        {% for message in messages %}
-            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-        {% endfor %}
-    </ul>
-{% endif %}
+     <!-- Dashboard Container -->
+     <div class="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 font-sans">
+         <!-- Header -->
+         <div class="mb-6">
+             <h1 class="text-xl sm:text-2xl font-semibold text-gray-900">Customer Analytics</h1>
+             <p class="text-sm text-gray-600 mt-1">Interactive insights for customer segmentation and sales.</p>
+         </div>
 
-<!-- Form for single-section PDF download -->
-<form method="post" action="">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="download_single_pdf">
-    <label for="pdf_section">Select Section for PDF:</label>
-    <select name="pdf_section" id="pdf_section">
-        <option value="top_products">Top Products</option>
-        <option value="rfm_segments">RFM Segments</option>
-        <option value="rules">Rules</option>
-        <option value="loyalty_summary">Loyalty Summary</option>
-        <option value="clv">Customer Lifetime Value</option>
-        <option value="geo_summary">Geographic Summary</option>
-        <option value="day_summary">Day Summary</option>
-        <option value="hour_summary">Hour Summary</option>
-        <option value="churn">Churn</option>
-        <option value="plots">Plots</option>
-    </select>
-    <button type="submit">Download Selected Section as PDF</button>
-</form>
+         <!-- Messages -->
+         {% if messages %}
+             <div class="mb-6 bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-md text-sm">
+                 <ul class="list-disc pl-5">
+                     {% for message in messages %}
+                         <li>{{ message }}</li>
+                     {% endfor %}
+                 </ul>
+             </div>
+         {% endif %}
 
-<!-- Form for all-sections PDF download -->
-<form method="post" action="">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="download_all_pdf">
-    <button type="submit">Download All Sections as PDF</button>
-</form>
+         <!-- PDF Download Forms -->
+         <div class="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+             <div class="bg-white shadow-sm rounded-lg p-4">
+                 <form method="post" action="" class="flex flex-col sm:flex-row gap-2 items-center">
+                     {% csrf_token %}
+                     <input type="hidden" name="action" value="download_single_pdf">
+                     <label for="pdf_section" class="text-sm font-medium text-gray-700 sr-only sm:not-sr-only">Section:</label>
+                     <select name="pdf_section" id="pdf_section" class="border border-gray-300 rounded-md p-2 text-sm flex-grow focus:ring-2 focus:ring-indigo-500">
+                         <option value="top_products">Top Products</option>
+                         <option value="rfm_segments">Customer Segments</option>
+                         <option value="rules">Association Rules</option>
+                         <option value="loyalty_summary">Loyalty Metrics</option>
+                         <option value="clv">Customer Value</option>
+                         <option value="geo_summary">Geographic Sales</option>
+                         <option value="day_summary">Daily Sales</option>
+                         <option value="hour_summary">Hourly Sales</option>
+                         <option value="churn">Churn Risk</option>
+                         <option value="plots">Static Plots</option>
+                     </select>
+                     <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm hover:bg-indigo-700 transition duration-200">Download PDF</button>
+                 </form>
+             </div>
+             <div class="bg-white shadow-sm rounded-lg p-4">
+                 <form method="post" action="">
+                     {% csrf_token %}
+                     <input type="hidden" name="action" value="download_all_pdf">
+                     <button type="submit" class="w-full bg-teal-600 text-white px-4 py-2 rounded-md text-sm hover:bg-teal-700 transition duration-200">Download All PDFs</button>
+                 </form>
+             </div>
+         </div>
 
-<!-- Display plots -->
-<h2>Plots</h2>
-{% if plots %}
-    {% for plot in plots %}
-        <div>
-            <img src="{{ plot }}" alt="Analysis Plot" style="max-width: 100%; height: auto;">
-        </div>
-    {% endfor %}
-{% else %}
-    <p>No plots available.</p>
-{% endif %}
+         <!-- Charts Grid -->
+         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             <!-- Top Products -->
+             <div class="bg-white shadow-sm rounded-lg p-6 h-[300px]">
+                 <h2 class="text-base font-semibold text-gray-900 mb-4">Top 10 Products</h2>
+                 {% if top_products %}
+                     <canvas id="topProductsChart"></canvas>
+                     <script>
+                         const topProductsLabels = [{% for product in top_products %}'{{ product.Description|default:product.StockCode|default:"Unknown Product"|slice:":20" }}{% if product.Description|length > 20 or product.StockCode|length > 20 %}...{% endif %}'{% if not forloop.last %},{% endif %}{% endfor %}];
+                         const topProductsCtx = document.getElementById('topProductsChart').getContext('2d');
+                         new Chart(topProductsCtx, {
+                             type: 'bar',
+                             data: {
+                                 labels: topProductsLabels,
+                                 datasets: [{
+                                     label: 'Units Sold',
+                                     data: [{% for product in top_products %}{{ product.Quantity|default:0 }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                                     backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                                     borderColor: 'rgba(99, 102, 241, 1)',
+                                     borderWidth: 1
+                                 }]
+                             },
+                             options: {
+                                 responsive: true,
+                                 maintainAspectRatio: false,
+                                 scales: {
+                                     y: { beginAtZero: true, title: { display: true, text: 'Units Sold', font: { size: 12 } } },
+                                     x: { title: { display: true, text: 'Product', font: { size: 12 } }, ticks: { autoSkip: true, maxRotation: 45, minRotation: 45, font: { size: 10 } } }
+                                 },
+                                 plugins: {
+                                     legend: { display: true, labels: { font: { size: 12 } } },
+                                     title: { display: true, text: 'Top 10 Products', font: { size: 14 } },
+                                     tooltip: { bodyFont: { size: 12 }, titleFont: { size: 12 } }
+                                 }
+                             }
+                         });
+                     </script>
+                 {% else %}
+                     <p class="text-gray-500 text-sm">No data available.</p>
+                 {% endif %}
+             </div>
 
-{% endblock %}
+             <!-- Customer Segments -->
+             <div class="bg-white shadow-sm rounded-lg p-6 h-[300px]">
+                 <h2 class="text-base font-semibold text-gray-900 mb-4">Customer Segments</h2>
+                 {% if rfm_segments %}
+                     <canvas id="rfmSegmentsChart"></canvas>
+                     <script>
+                         const rfmSegmentsCtx = document.getElementById('rfmSegmentsChart').getContext('2d');
+                         new Chart(rfmSegmentsCtx, {
+                             type: 'doughnut',
+                             data: {
+                                 labels: [{% for segment in rfm_segments %}'{{ segment.Segment }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+                                 datasets: [{
+                                     data: [{% for segment in rfm_segments %}{{ segment.Count|default:0 }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                                     backgroundColor: ['rgba(239, 68, 68, 0.6)', 'rgba(59, 130, 246, 0.6)', 'rgba(245, 158, 11, 0.6)', 'rgba(16, 185, 129, 0.6)'],
+                                     borderColor: ['rgba(239, 68, 68, 1)', 'rgba(59, 130, 246, 1)', 'rgba(245, 158, 11, 1)', 'rgba(16, 185, 129, 1)'],
+                                     borderWidth: 1
+                                 }]
+                             },
+                             options: {
+                                 responsive: true,
+                                 maintainAspectRatio: false,
+                                 plugins: {
+                                     legend: { display: true, labels: { font: { size: 12 } } },
+                                     title: { display: true, text: 'Customer Segments', font: { size: 14 } },
+                                     tooltip: { bodyFont: { size: 12 }, titleFont: { size: 12 } }
+                                 }
+                             }
+                         });
+                     </script>
+                 {% else %}
+                     <p class="text-gray-500 text-sm">No data available.</p>
+                 {% endif %}
+             </div>
+
+             <!-- Geographic Sales -->
+             <div class="bg-white shadow-sm rounded-lg p-6 h-[300px]">
+                 <h2 class="text-base font-semibold text-gray-900 mb-4">Geographic Sales</h2>
+                 {% if geo_summary %}
+                     <canvas id="geoSummaryChart"></canvas>
+                     <script>
+                         const geoSummaryLabels = [{% for geo in geo_summary %}'{{ geo.Country|slice:":20" }}{% if geo.Country|length > 20 %}...{% endif %}'{% if not forloop.last %},{% endif %}{% endfor %}];
+                         const geoSummaryCtx = document.getElementById('geoSummaryChart').getContext('2d');
+                         new Chart(geoSummaryCtx, {
+                             type: 'bar',
+                             data: {
+                                 labels: geoSummaryLabels,
+                                 datasets: [{
+                                     label: 'Revenue',
+                                     data: [{% for geo in geo_summary %}{{ geo.TotalRevenue|default:0 }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                                     backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                                     borderColor: 'rgba(16, 185, 129, 1)',
+                                     borderWidth: 1
+                                 }]
+                             },
+                             options: {
+                                 responsive: true,
+                                 maintainAspectRatio: false,
+                                 scales: {
+                                     y: { beginAtZero: true, title: { display: true, text: 'Revenue ($)', font: { size: 12 } } },
+                                     x: { title: { display: true, text: 'Country', font: { size: 12 } }, ticks: { autoSkip: true, maxRotation: 45, minRotation: 45, font: { size: 10 } } }
+                                 },
+                                 plugins: {
+                                     legend: { display: true, labels: { font: { size: 12 } } },
+                                     title: { display: true, text: 'Geographic Sales', font: { size: 14 } },
+                                     tooltip: { bodyFont: { size: 12 }, titleFont: { size: 12 } }
+                                 }
+                             }
+                         });
+                     </script>
+                 {% else %}
+                     <p class="text-gray-500 text-sm">No data available.</p>
+                 {% endif %}
+             </div>
+
+             <!-- Daily Sales -->
+             <div class="bg-white shadow-sm rounded-lg p-6 h-[300px]">
+                 <h2 class="text-base font-semibold text-gray-900 mb-4">Daily Sales</h2>
+                 {% if day_summary %}
+                     <canvas id="daySummaryChart"></canvas>
+                     <script>
+                         const daySummaryCtx = document.getElementById('daySummaryChart').getContext('2d');
+                         new Chart(daySummaryCtx, {
+                             type: 'bar',
+                             data: {
+                                 labels: [{% for day in day_summary %}'{{ day.DayOfWeek|slice:":3" }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+                                 datasets: [{
+                                     label: 'Revenue',
+                                     data: [{% for day in day_summary %}{{ day.TotalPrice|default:0 }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                                     backgroundColor: 'rgba(245, 158, 11, 0.6)',
+                                     borderColor: 'rgba(245, 158, 11, 1)',
+                                     borderWidth: 1
+                                 }]
+                             },
+                             options: {
+                                 responsive: true,
+                                 maintainAspectRatio: false,
+                                 scales: {
+                                     y: { beginAtZero: true, title: { display: true, text: 'Revenue ($)', font: { size: 12 } } },
+                                     x: { title: { display: true, text: 'Day', font: { size: 12 } }, ticks: { font: { size: 10 } } }
+                                 },
+                                 plugins: {
+                                     legend: { display: true, labels: { font: { size: 12 } } },
+                                     title: { display: true, text: 'Daily Sales', font: { size: 14 } },
+                                     tooltip: { bodyFont: { size: 12 }, titleFont: { size: 12 } }
+                                 }
+                             }
+                         });
+                     </script>
+                 {% else %}
+                     <p class="text-gray-500 text-sm">No data available.</p>
+                 {% endif %}
+             </div>
+
+             <!-- Hourly Sales -->
+             <div class="bg-white shadow-sm rounded-lg p-6 h-[300px]">
+                 <h2 class="text-base font-semibold text-gray-900 mb-4">Hourly Sales</h2>
+                 {% if hour_summary %}
+                     <canvas id="hourSummaryChart"></canvas>
+                     <script>
+                         const hourSummaryCtx = document.getElementById('hourSummaryChart').getContext('2d');
+                         new Chart(hourSummaryCtx, {
+                             type: 'line',
+                             data: {
+                                 labels: [{% for hour in hour_summary %}'{{ hour.Hour }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+                                 datasets: [{
+                                     label: 'Revenue',
+                                     data: [{% for hour in hour_summary %}{{ hour.TotalPrice|default:0 }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                                     backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                                     borderColor: 'rgba(139, 92, 246, 1)',
+                                     borderWidth: 2,
+                                     fill: true
+                                 }]
+                             },
+                             options: {
+                                 responsive: true,
+                                 maintainAspectRatio: false,
+                                 scales: {
+                                     y: { beginAtZero: true, title: { display: true, text: 'Revenue ($)', font: { size: 12 } } },
+                                     x: { title: { display: true, text: 'Hour', font: { size: 12 } }, ticks: { font: { size: 10 } } }
+                                 },
+                                 plugins: {
+                                     legend: { display: true, labels: { font: { size: 12 } } },
+                                     title: { display: true, text: 'Hourly Sales', font: { size: 14 } },
+                                     tooltip: { bodyFont: { size: 12 }, titleFont: { size: 12 } }
+                                 }
+                             }
+                         });
+                     </script>
+                 {% else %}
+                     <p class="text-gray-500 text-sm">No data available.</p>
+                 {% endif %}
+             </div>
+
+             <!-- Static Plots -->
+             <div class="bg-white shadow-sm rounded-lg p-6 col-span-1 md:col-span-2 lg:col-span-3">
+                 <h2 class="text-base font-semibold text-gray-900 mb-4">Additional Plots</h2>
+                 {% if plots %}
+                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                         {% for plot in plots %}
+                             <div class="overflow-hidden rounded-md">
+                                 <img src="{{ plot }}" alt="Analysis Plot" class="w-full h-auto object-cover">
+                             </div>
+                         {% endfor %}
+                     </div>
+                 {% else %}
+                     <p class="text-gray-500 text-sm">No additional plots available.</p>
+                 {% endif %}
+             </div>
+         </div>
+     </div>
+     {% endblock %}
