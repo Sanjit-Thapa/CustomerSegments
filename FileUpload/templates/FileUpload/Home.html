@@ -5,34 +5,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> {% block title %}Home{% endblock %} </title>
+    <title>{% block title %}Customer Segmentation{% endblock %}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom CSS for Animations -->
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        .hover-scale:hover {
+            transform: scale(1.05);
+            transition: transform 0.3s ease;
+        }
+    </style>
 </head>
-<body>
+<body class="font-sans bg-gray-50 min-h-screen">
     {% block content %}
-        
-        <form method="post" enctype="multipart/form-data" >
-            
-            {% csrf_token %}
+    <!-- Hero Section -->
+    <div class="relative bg-gradient-to-r from-indigo-600 to-teal-500 text-white py-16 sm:py-24">
+        <div class="absolute inset-0 bg-black opacity-20"></div>
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 fade-in">Unlock Customer Insights</h1>
+            <p class="text-lg sm:text-xl max-w-2xl mx-auto mb-6 fade-in">Upload your sales data to generate powerful segmentation analytics and drive business growth.</p>
+        </div>
+    </div>
 
-            <h4>Upload File: {{csv_form.csv_file}} </h4>
-            
-            <input type="submit" value="Save">
-        </form>
-        
-        {% if messages %}
-        <h2>Messages</h2>
-        <ul>
-            {% for message in messages %}
-                <li{% if message.tags == 'error' %} style="color: red;"{% elif message.tags == 'warning' %} style="color: orange;"{% else %} style="color: green;"{% endif %}>
-                    {{ message }}
-                </li>
-            {% endfor %}
-        </ul>
+    <!-- Upload Form Section -->
+    <div class="max-w-lg mx-auto -mt-12 px-4 sm:px-6 lg:px-8">
+        <div class="bg-white shadow-lg rounded-lg p-6 sm:p-8 fade-in hover-scale">
+            <h2 class="text-xl sm:text-2xl font-semibold text-gray-900 mb-4 text-center">Upload Sales Data</h2>
+            <form method="post" enctype="multipart/form-data" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label for="csv_file" class="block text-sm font-medium text-gray-700">Select CSV File</label>
+                    <div class="mt-1 flex items-center">
+                        {{ csv_form.csv_file }}
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">Supported format: CSV with columns (InvoiceNo, StockCode, Quantity, etc.)</p>
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition duration-300">
+                    Analyze Data
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Messages Section -->
+    {% if messages %}
+        <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+            <div class="space-y-4">
+                {% for message in messages %}
+                    <div class="p-4 rounded-md text-sm fade-in {{
+                        'bg-red-50 text-red-700 border-l-4 border-red-500' if message.tags == 'error' else
+                        'bg-yellow-50 text-yellow-700 border-l-4 border-yellow-500' if message.tags == 'warning' else
+                        'bg-green-50 text-green-700 border-l-4 border-green-500'
+                    }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
     {% endif %}
-       
-    {% endblock  %}
-
-
-
+    </div>
+    {% endblock %}
 </body>
 </html>
