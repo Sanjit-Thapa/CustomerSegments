@@ -1,76 +1,151 @@
 {% load static %}
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Customer Segmentation{% endblock %}</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Custom CSS for Animations -->
-    <style>
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .fade-in {
-            animation: fadeIn 0.5s ease-out forwards;
-        }
-        .hover-scale:hover {
-            transform: scale(1.05);
-            transition: transform 0.3s ease;
-        }
-    </style>
-</head>
-<body class="font-sans bg-gray-50 min-h-screen">
-    {% block content %}
-    <!-- Hero Section -->
-    <div class="relative bg-gradient-to-r from-indigo-600 to-teal-500 text-white py-16 sm:py-24">
-        <div class="absolute inset-0 bg-black opacity-20"></div>
-        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 fade-in">Unlock Customer Insights</h1>
-            <p class="text-lg sm:text-xl max-w-2xl mx-auto mb-6 fade-in">Upload your sales data to generate powerful segmentation analytics and drive business growth.</p>
-        </div>
-    </div>
+     <!DOCTYPE html>
+     <html lang="en">
+     <head>
+         <meta charset="UTF-8">
+         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+         <title>{% block title %}Customer Segmentation{% endblock %}</title>
+         <!-- Tailwind CSS CDN -->
+         <script src="https://cdn.tailwindcss.com"></script>
+         <!-- Custom CSS -->
+         <style>
+             @keyframes fadeInUp {
+                 from { opacity: 0; transform: translateY(20px); }
+                 to { opacity: 1; transform: translateY(0); }
+             }
+             @keyframes pulse {
+                 0%, 100% { transform: scale(1); }
+                 50% { transform: scale(1.02); }
+             }
+             .fade-in-up {
+                 animation: fadeInUp 0.6s ease-out forwards;
+             }
+             .pulse {
+                 animation: pulse 2s infinite ease-in-out;
+             }
+             .hover-glow:hover {
+                 box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+                 transition: box-shadow 0.3s ease;
+             }
+             .file-upload {
+                 border: 2px dashed #a5b4fc;
+                 background: linear-gradient(135deg, #f5f7ff, #e0e7ff);
+                 transition: all 0.3s ease;
+                 cursor: pointer;
+                 position: relative;
+             }
+             .file-upload.dragover {
+                 border-color: #4f46e5;
+                 background: #e0e7ff;
+             }
+             #id_csv_file {
+                 opacity: 0;
+                 position: absolute;
+                 top: 0;
+                 left: 0;
+                 width: 100%;
+                 height: 100%;
+                 cursor: pointer;
+             }
+         </style>
+     </head>
+     <body class="font-sans bg-gray-50 min-h-screen">
+         {% block content %}
+         <!-- Hero Section -->
+         <div class="relative bg-gradient-to-r from-indigo-600 to-teal-500 text-white py-16 sm:py-24">
+             <div class="absolute inset-0 bg-black opacity-20"></div>
+             <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                 <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 fade-in-up">Unlock Customer Insights</h1>
+                 <p class="text-lg sm:text-xl max-w-2xl mx-auto mb-6 fade-in-up">Upload your sales data to generate powerful segmentation analytics and drive business growth.</p>
+             </div>
+         </div>
 
-    <!-- Upload Form Section -->
-    <div class="max-w-lg mx-auto -mt-12 px-4 sm:px-6 lg:px-8">
-        <div class="bg-white shadow-lg rounded-lg p-6 sm:p-8 fade-in hover-scale">
-            <h2 class="text-xl sm:text-2xl font-semibold text-gray-900 mb-4 text-center">Upload Sales Data</h2>
-            <form method="post" enctype="multipart/form-data" class="space-y-4">
-                {% csrf_token %}
-                <div>
-                    <label for="csv_file" class="block text-sm font-medium text-gray-700">Select CSV File</label>
-                    <div class="mt-1 flex items-center">
-                        {{ csv_form.csv_file }}
-                    </div>
-                    <p class="mt-1 text-xs text-gray-500">Supported format: CSV with columns (InvoiceNo, StockCode, Quantity, etc.)</p>
-                </div>
-                <button type="submit" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition duration-300">
-                    Analyze Data
-                </button>
-            </form>
-        </div>
-    </div>
+         <!-- Upload Form Section -->
+         <div class="max-w-xl mx-auto -mt-16 px-4 sm:px-6 lg:px-8">
+             <div class="relative bg-gradient-to-br from-white to-indigo-50 shadow-xl rounded-xl p-6 sm:p-8 fade-in-up hover-glow border-2 border-indigo-200">
+                 <div class="absolute inset-0 rounded-xl bg-indigo-600 opacity-5"></div>
+                 <h2 class="text-xl sm:text-2xl font-semibold text-gray-900 mb-6 text-center">Upload Your Data</h2>
+                 <form method="post" enctype="multipart/form-data" class="space-y-6">
+                     {% csrf_token %}
+                     <div class="file-upload rounded-lg p-6 text-center" id="file-upload-area">
+                         <label class="block text-sm font-medium text-indigo-700 mb-2">Drop CSV File Here or Click to Browse</label>
+                         {{ csv_form.csv_file }}
+                         <p class="mt-2 text-xs text-gray-600">CSV format: InvoiceNo, StockCode, Quantity, InvoiceDate, etc.</p>
+                         <p class="mt-2 text-sm text-indigo-600 font-medium" id="file-name">No file selected</p>
+                     </div>
+                     <button type="submit" class="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg text-sm font-medium hover:bg-indigo-700 transition duration-300 pulse shadow-md">
+                         Start Analysis
+                     </button>
+                 </form>
+             </div>
+         </div>
 
-    <!-- Messages Section -->
-    {% if messages %}
-        <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-            <div class="space-y-4">
-                {% for message in messages %}
-                    <div class="p-4 rounded-md text-sm fade-in {{
-                        'bg-red-50 text-red-700 border-l-4 border-red-500' if message.tags == 'error' else
-                        'bg-yellow-50 text-yellow-700 border-l-4 border-yellow-500' if message.tags == 'warning' else
-                        'bg-green-50 text-green-700 border-l-4 border-green-500'
-                    }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-    {% endif %}
-    </div>
-    {% endblock %}
-</body>
-</html>
+         <!-- Messages Section -->
+         {% if messages %}
+             <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+                 <div class="space-y-4">
+                     {% for message in messages %}
+                         <div class="p-4 rounded-md text-sm fade-in-up {{
+                             'bg-red-50 text-red-700 border-l-4 border-red-500' if message.tags == 'error' else
+                             'bg-yellow-50 text-yellow-700 border-l-4 border-yellow-500' if message.tags == 'warning' else
+                             'bg-green-50 text-green-700 border-l-4 border-green-500'
+                         }}">
+                             {{ message }}
+                         </div>
+                     {% endfor %}
+                 </div>
+             </div>
+         {% endif %}
+         {% endblock %}
+     </body>
+     </html>
+
+     <!-- JavaScript for Drag-and-Drop and File Selection -->
+     <script>
+         const fileInput = document.querySelector('#id_csv_file');
+         const fileUploadArea = document.querySelector('#file-upload-area');
+         const fileNameDisplay = document.querySelector('#file-name');
+
+         if (!fileInput) console.error('File input not found! Check Django form rendering.');
+
+         // Handle drag-and-drop
+         fileUploadArea.addEventListener('dragover', (e) => {
+             e.preventDefault();
+             console.log('Drag over');
+             fileUploadArea.classList.add('dragover');
+         });
+
+         fileUploadArea.addEventListener('dragleave', (e) => {
+             e.preventDefault();
+             console.log('Drag leave');
+             fileUploadArea.classList.remove('dragover');
+         });
+
+         fileUploadArea.addEventListener('drop', (e) => {
+             e.preventDefault();
+             console.log('File dropped');
+             fileUploadArea.classList.remove('dragover');
+             if (fileInput) {
+                 fileInput.files = e.dataTransfer.files;
+                 updateFileName();
+             }
+         });
+
+         // Update file name display
+         if (fileInput) {
+             fileInput.addEventListener('change', () => {
+                 console.log('File input changed');
+                 updateFileName();
+             });
+         }
+
+         function updateFileName() {
+             if (fileInput && fileInput.files.length > 0) {
+                 fileNameDisplay.textContent = fileInput.files[0].name;
+                 console.log('Selected file:', fileInput.files[0].name);
+             } else {
+                 fileNameDisplay.textContent = 'No file selected';
+             }
+         }
+     </script>
