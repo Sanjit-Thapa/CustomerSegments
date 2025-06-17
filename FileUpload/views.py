@@ -1,11 +1,13 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
-from .forms import UploadCSV
+from .forms import UploadCSV,SignUp,Login
 from pathlib import Path
 from .utils.customer_segmentation import run_analysis
 from django.contrib import messages
 from django.conf import settings
 import pdfkit
+from django.contrib.auth import login
+
 from django.template.loader import render_to_string
 from datetime import datetime
 import os
@@ -13,6 +15,37 @@ import logging
 
 # Setup logging
 logger = logging.getLogger(__name__)
+
+def Loginin(request):
+    if request.method == 'POST':
+        form = Login(request.POST)
+        if form.is_valid():
+            # Log the user in
+            login(request, form.user)
+            messages.success(request, "Successfully logged in!")
+            return redirect('home')  # Replace 'home' with your actual home URL name
+        else:
+            messages.error(request, "Invalid email or password. Please try again.")
+    else:
+        form = Login()  # Initialize an empty form for GET requests
+
+    return render(request, 'FileUpload/Login.html', {'form': form})
+
+def SignedUp(request):
+    if request.method == 'POST':
+        signup_form = SignUp(request.POST)
+        if signup_form.is_valid():
+            signup_form.save()
+            return redirect('login')  # redirect to login page
+        else:
+            print(signup_form.errors)  # Debug
+
+    else:
+        signup_form = SignUp()
+
+    return render(request, 'FileUpload/Signup.html', {
+        'signup': signup_form
+    })
 
 def Home(request):
     context = {'csv_form': UploadCSV()}
@@ -185,3 +218,5 @@ def Home(request):
             return render(request, 'FileUpload/Home.html', context)
 
     return render(request, 'FileUpload/Home.html', context)
+
+
