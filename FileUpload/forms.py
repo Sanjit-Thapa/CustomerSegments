@@ -2,7 +2,7 @@ from django import forms
 from .models import csv_path
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model,authenticate
 
 User = get_user_model()
 class UploadCSV(forms.ModelForm):
@@ -35,22 +35,20 @@ class Login(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput)
 
     def clean(self):
-        cleaned_data = super().clean()
-        email = cleaned_data.get('email')
-        password = cleaned_data.get('password')
-
-        if not email or not password:
-            raise forms.ValidationError("Email and password are required.")
-
+        email = self.cleaned_data.get('email')
+        password = self.cleaned_data.get('password')
+        user = None
         try:
-            user = User.objects.get(email=email)
+            user_obj = User.objects.get(email=email)
+            username = user_obj.username  # authenticate uses username
         except User.DoesNotExist:
             raise forms.ValidationError("Invalid email or password")
 
-        if not user.check_password(password):
+        user = authenticate(username=username, password=password)
+        if user is None:
             raise forms.ValidationError("Invalid email or password")
 
-        self.user = user  # Store the user object for the view to use
-        return cleaned_data
+        self.user = user
+        return self.cleaned_data
 
 

@@ -11,6 +11,13 @@
     <div class="mb-6">
         <h1 class="text-xl sm:text-2xl font-semibold text-gray-900">Customer Analytics</h1>
         <p class="text-sm text-gray-600 mt-1">Interactive insights for customer segmentation and sales.</p>
+        <!-- Logout Button -->
+        {% if user.is_authenticated %}
+            <form method="post" action="{% url 'logout' %}" class="mt-4">
+                {% csrf_token %}
+                <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-md text-sm hover:bg-red-700 transition duration-200">Logout</button>
+            </form>
+        {% endif %}
     </div>
 
     <!-- Messages -->

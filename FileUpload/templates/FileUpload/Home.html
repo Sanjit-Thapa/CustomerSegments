@@ -52,14 +52,25 @@
      </head>
      <body class="font-sans bg-gray-50 min-h-screen">
          {% block content %}
-         <!-- Hero Section -->
-         <div class="relative bg-gradient-to-r from-indigo-600 to-teal-500 text-white py-16 sm:py-24">
-             <div class="absolute inset-0 bg-black opacity-20"></div>
-             <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                 <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 fade-in-up">Unlock Customer Insights</h1>
-                 <p class="text-lg sm:text-xl max-w-2xl mx-auto mb-6 fade-in-up">Upload your sales data to generate powerful segmentation analytics and drive business growth.</p>
-             </div>
-         </div>
+      
+        <!-- Hero Section -->
+<div class="relative bg-gradient-to-r from-indigo-600 to-teal-500 text-white py-16 sm:py-24">
+    <div class="absolute inset-0 bg-black opacity-20"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 fade-in-up">Unlock Customer Insights</h1>
+        <p class="text-lg sm:text-xl max-w-2xl mx-auto mb-6 fade-in-up">Upload your sales data to generate powerful segmentation analytics and drive business growth.</p>
+        <!-- Flex container to align logout button to the right -->
+        <div class="flex justify-end mt-4">
+            <!-- Logout Button -->
+            {% if user.is_authenticated %}
+                <form method="post" action="{% url 'logout' %}" class="inline-block">
+                    {% csrf_token %}
+                    <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-md text-sm hover:bg-red-700 transition duration-200">Logout</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
 
          <!-- Upload Form Section -->
          <div class="max-w-xl mx-auto -mt-16 px-4 sm:px-6 lg:px-8">

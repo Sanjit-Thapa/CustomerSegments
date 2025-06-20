@@ -31,6 +31,9 @@ def Loginin(request):
 
     return render(request, 'FileUpload/Login.html', {'form': form})
 
+
+
+
 def SignedUp(request):
     if request.method == 'POST':
         signup_form = SignUp(request.POST)
